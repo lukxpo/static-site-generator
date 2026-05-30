@@ -73,4 +73,69 @@ def extract_markdown_images(text):
 
 def extract_markdown_links(text):
     return re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
-    
+
+
+def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
+    new_nodes = []
+
+    for node in old_nodes:
+        if node.text_type != TextType.TEXT:
+            new_nodes.append(node)
+            continue
+
+        matches = extract_markdown_images(node.text)
+        if matches:
+            text_tmp = node.text
+            for match in matches:
+                image_alt = match[0]
+                image_link = match[1]
+                split_text = text_tmp.split(f"![{image_alt}]({image_link})")
+                if split_text[0]:
+                    new_nodes.append(TextNode(split_text[0], TextType.TEXT))
+                new_nodes.append(TextNode(image_alt, TextType.IMAGE, image_link))
+                if len(split_text) > 1:
+                    text_tmp = split_text[1]
+                else:
+                    text_tmp = ""
+            
+            if text_tmp:
+                new_nodes.append(TextNode(text_tmp, TextType.TEXT))
+        
+        else:
+            new_nodes.append(node)
+
+
+    return new_nodes
+
+
+def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
+    new_nodes = []
+
+    for node in old_nodes:
+        if node.text_type != TextType.TEXT:
+            new_nodes.append(node)
+            continue
+
+        matches = extract_markdown_links(node.text)
+        if matches:
+            text_tmp = node.text
+            for match in matches:
+                link_text = match[0]
+                link_url = match[1]
+                split_text = text_tmp.split(f"[{link_text}]({link_url})")
+                if split_text[0]:
+                    new_nodes.append(TextNode(split_text[0], TextType.TEXT))
+                new_nodes.append(TextNode(link_text, TextType.LINK, link_url))
+                if len(split_text) > 1:
+                    text_tmp = split_text[1]
+                else:
+                    text_tmp = ""
+            
+            if text_tmp:
+                new_nodes.append(TextNode(text_tmp, TextType.TEXT))
+        
+        else:
+            new_nodes.append(node)
+
+
+    return new_nodes
